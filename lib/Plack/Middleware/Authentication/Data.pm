@@ -1,4 +1,4 @@
-package Plack::Middleware::MyAuth::Shared;
+package Data;
 use Bytes::Random::Secure qw(random_string_from);
 
 our @EXPORT = qw( get_user_groups authenticate remove_token add_new_token get_valid_token);

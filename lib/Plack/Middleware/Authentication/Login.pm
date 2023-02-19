@@ -1,7 +1,7 @@
-package Plack::Middleware::MyAuth::Login;
+package Plack::Middleware::Authentication::Login;
 use parent qw(Plack::Middleware);
 
-use Plack::Middleware::MyAuth::Shared;
+use Plack::Middleware::Authentication::Data;
 use Plack::Util;
 
 sub call {

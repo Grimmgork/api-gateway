@@ -1,8 +1,9 @@
-package Plack::Middleware::MyPolicy;
+package Plack::Middleware::Authorization::Sentinel;
 use parent qw(Plack::Middleware);
-use Plack::Util;
-use ReqMatch;
 use Plack::Request;
+use Plack::Util;
+
+use Plack::Middleware::Authorization::ReqMatch;
 
 sub call {
 	my($self, $env) = @_;

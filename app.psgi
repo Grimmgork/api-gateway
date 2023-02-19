@@ -2,9 +2,9 @@ use Plack::Builder;
 use Plack::App::File;
 
 use lib './lib';
-use Plack::Middleware::MyAuth::Auth;
-use Plack::Middleware::MyAuth::Login;
-use Plack::Middleware::MyPolicy;
+use Plack::Middleware::Authentication::Auth;
+use Plack::Middleware::Authentication::Login;
+use Plack::Middleware::Authorization::Sentinel;
 use Plack::Request;
 
 my $mclip = sub {
@@ -23,12 +23,12 @@ builder {
 	mount "/login.html" => Plack::App::File->new(file => './static/login.html')->to_app;
 	mount "/favicon.ico" => Plack::App::File->new(file => './static/favicon.ico')->to_app;
 	mount "/login" => builder{
-		enable "Plack::Middleware::MyAuth::Login", loginpage => "/login.html"; # is not a real middleware??
+		enable "Plack::Middleware::Authentication::Login", loginpage => "/login.html"; # is not a real middleware??
 	};
 
 	mount "/private" => builder {
-		enable "Plack::Middleware::MyAuth::Auth", file => "./login.txt"; # authentication
-		enable "Plack::Middleware::MyPolicy", file => "./policy.txt"; # check authorization
+		enable "Plack::Middleware::Authentication::Auth", file => "./login.txt"; # authentication
+		enable "Plack::Middleware::Authorization::Sentinel", file => "./policy.txt"; # check authorization
 		mount "/mclip" => $mclip;
 		mount "/log" => $mlog;
 	};

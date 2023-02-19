@@ -4,7 +4,7 @@ use strict;
 # my $groups = ["test", "lel", "dies", "das", "ananas"];
 # match("./policy.txt", $groups, "post", "share", "test", "kladklak", "adlkalwd");
 
-sub match {
+sub match_request {
 	my ($policy, $groups_ref, $verb, @segments) = @_;
 
 	open my $file, $policy or die "Could not open $policy: $!";
