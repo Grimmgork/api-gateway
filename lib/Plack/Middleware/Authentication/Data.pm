@@ -1,21 +1,13 @@
-package Data;
+package Plack::Middleware::Authentication::Data;
 use Bytes::Random::Secure qw(random_string_from);
-
-our @EXPORT = qw( get_user_groups authenticate remove_token add_new_token get_valid_token);
-
-# print generate_token_row("token", "name", "time", "directive");
-# print add_new_token("./tokens.txt", "uname", time() + 60*5, "directive"), "\n";
-# print remove_token("./tokens.txt", "be31zyay"), "\n";
-# print get_valid_token("./tokens.txt", "be31zyay"), "\n";
-
-print authenticate("./login.txt", "root", "password"), "\n";
 
 sub get_user_groups {
  	my ($file, $uname) = @_;
  	open FH, $file or die "could not open '$file'!";
  	while(<FH>){
  		if($_ =~ m/^$uname:\S+:([a-z0-9-_ ]+)$/m){
- 			return split ":", $1;
+			my @groups = split ":", $1;
+ 			return \@groups;
  		}
  	}
  	return undef;
@@ -25,7 +17,7 @@ sub authenticate {
 	my ($file, $uname, $pwd) = @_;
 	open FH, $file or die "could not open '$file'!";
  	while(<FH>){
- 		if($_ =~ m/^$uname:$pwd:([a-z0-9_:-]+)$/m){
+ 		if($_ =~ m/^$uname:$pwd:([a-z0-9_:-]+)$/m){ #TODO clean up
  			return split(":", $1);
  		}
  	}
@@ -61,7 +53,7 @@ sub get_valid_token {
 		if($_ =~ m/^$token\s/){
 			my @fields = parse_token_fields($_);
 			return undef unless @fields;
-			return undef if $fields[-1] eq "x" or $fields[2] > time();
+			return undef if $fields[-1] eq "x" or $fields[1] < time();
 			return @fields;
 		}
 	}

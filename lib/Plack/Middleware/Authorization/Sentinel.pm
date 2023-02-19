@@ -8,17 +8,15 @@ use Plack::Middleware::Authorization::ReqMatch;
 sub call {
 	my($self, $env) = @_;
 	my $req = Plack::Request->new($env);
-	return $self->app->($env) if valid_request($self->{file}, "mclip_owner", $req->method, $req->path);
+	return $self->app->($env) if valid_request($self->{file}, $env->{GROUPS}, $req->method, $req->path);
 	return [403, [], ["forbidden!"]];
 }
 
 sub valid_request {
-	my ($file, $group, $method, $path) = @_;
+	my ($file, $groups_ref, $method, $path) = @_;
 	chomp $path;
-	chomp $group;
 	my @segments = grep { $_ ne '' } split "/", $path;
-	print @segments, "$method $path $group\n";
-	return ReqMatch::match($file, $group,"get", @segments);
+	return Plack::Middleware::Authorization::ReqMatch::match_request($file, $groups_ref, "get", @segments);
 }
 
 1;
