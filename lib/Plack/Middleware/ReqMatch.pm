@@ -1,4 +1,4 @@
-package Plack::Middleware::Authorization::ReqMatch;
+package Plack::Middleware::ReqMatch;
 use strict;
 
 # my $groups = ["test", "lel", "dies", "das", "ananas"];

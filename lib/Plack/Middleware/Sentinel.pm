@@ -1,9 +1,9 @@
-package Plack::Middleware::Authorization::Sentinel;
+package Plack::Middleware::Sentinel;
 use parent qw(Plack::Middleware);
 use Plack::Request;
 use Plack::Util;
 
-use Plack::Middleware::Authorization::ReqMatch;
+use Plack::Middleware::ReqMatch;
 
 sub call {
 	my($self, $env) = @_;
@@ -16,7 +16,7 @@ sub valid_request {
 	my ($file, $groups_ref, $method, $path) = @_;
 	chomp $path;
 	my @segments = grep { $_ ne '' } split "/", $path;
-	return Plack::Middleware::Authorization::ReqMatch::match_request($file, $groups_ref, "get", @segments);
+	return Plack::Middleware::ReqMatch::match_request($file, $groups_ref, "get", @segments);
 }
 
 1;

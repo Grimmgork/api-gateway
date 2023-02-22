@@ -1,4 +1,4 @@
-package Plack::Middleware::Authentication::Data;
+package Plack::Middleware::Data;
 use Bytes::Random::Secure qw(random_string_from);
 
 sub get_user_groups {
