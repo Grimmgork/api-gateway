@@ -1,31 +1,47 @@
-package Plack::Middleware::Data;
+package Data;
 use Bytes::Random::Secure qw(random_string_from);
 
+sub new {
+    my $class = shift;
+    my $self = {
+		loginfile => shift || "login.txt",
+		tokenfile => shift || "tokens.txt"
+    };
+    return bless $self, $class;
+}
+
 sub get_user_groups {
- 	my ($file, $uname) = @_;
+ 	my ($self, $uname) = @_;
+	my $file = $self->{loginfile};
  	open FH, $file or die "could not open '$file'!";
  	while(<FH>){
  		if($_ =~ m/^$uname:\S+:([a-z0-9-_ ]+)$/m){
 			my @groups = split ":", $1;
+			close FH;
  			return \@groups;
  		}
  	}
+	close FH;
  	return undef;
 }
 
 sub authenticate {
-	my ($file, $uname, $pwd) = @_;
+	my ($self, $uname, $pwd) = @_;
+	my $file = $self->{loginfile};
 	open FH, $file or die "could not open '$file'!";
  	while(<FH>){
  		if($_ =~ m/^$uname:$pwd:([a-z0-9_:-]+)$/m){ #TODO clean up
+			close FH;
  			return split(":", $1);
  		}
  	}
+	close FH;
 	return undef;
 }
 
 sub remove_token {
-	my ($file, $token) = @_;
+	my ($self, $token) = @_;
+	my $file = $self->{tokenfile};
 	open FH , '<', $file or die "Can't open '$file'!\n";
 	my @lines;
 	while(<FH>){
@@ -38,7 +54,8 @@ sub remove_token {
 }
 
 sub add_new_token {
-	my ($file, $uname, $time, $directive, $token) = @_;
+	my ($self, $uname, $time, $directive, $token) = @_;
+	my $file = $self->{tokenfile};
 	$token = random_string_from("abcdefghijklmnopqrstuvwxyz0123456789-_", 8) unless $token;
 	open(FH, ">>", $file);
 	print FH generate_token_row($token, $uname, $time, $directive);
@@ -46,18 +63,19 @@ sub add_new_token {
 	return $token;
 }
 
-sub get_valid_token {
- 	my ($file, $token) = @_;
+sub get_token_fields {
+ 	my ($self, $token) = @_;
+	my $file = $self->{tokenfile};
 	open FH, $file or die "could not open '$file'\n";
+	my $res;
 	while(<FH>){
 		if($_ =~ m/^$token\s/){
-			my @fields = parse_token_fields($_);
-			return undef unless @fields;
-			return undef if $fields[-1] eq "x" or $fields[1] < time();
-			return @fields;
+			$res = parse_token_fields($_);
+			last;
 		}
 	}
-	return undef;
+	close FH;
+	return $res;
 }
 
 sub parse_token_fields {
