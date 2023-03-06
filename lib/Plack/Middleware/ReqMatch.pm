@@ -1,14 +1,16 @@
 package Plack::Middleware::ReqMatch;
 use strict;
 
-# my $groups = ["test", "lel", "dies", "das", "ananas"];
-# match("./policy.txt", $groups, "post", "share", "test", "kladklak", "adlkalwd");
+# my $groups = ["mclip_owner"];
+# print match_request("./policy.txt", $groups, "post", "mclip", "test");
 
 sub match_request {
 	my ($policy, $groups_ref, $verb, @segments) = @_;
 
 	open my $file, $policy or die "Could not open $policy: $!";
 	my $segcount;
+
+	my @groups = @$groups_ref;
 
 	## find path
 	FINDPATH:
@@ -46,9 +48,9 @@ sub match_request {
 
 	## process a verb
 	VERB:
-	goto RULE unless $_ =~ s/^\s*([a-z0-9_\-]+)\s*//; # if there is no next verb
+	goto RULE unless $_ =~ s/^\s*([a-z]+)\s*//; # if there is no next verb
 	goto RULE if $1 eq "group"; # no matching verb found
-	if($1 eq $verb){
+	if($1 =~ m/^$verb$/i){
 		while($_ =~ s/^\s*([a-z0-9_\-]+)\s*//){ # go to the group verb
 			goto GROUP if $1 eq "group";
 		}
@@ -59,8 +61,8 @@ sub match_request {
 
 	## process a list of groups
 	GROUP:
-	goto RULE unless $_ =~ s/^\s*([a-z0-9_\-]+)\s*//;
-	return 1 if grep(/^$1$/, @$groups_ref);
+	goto RULE unless $_ =~ s/^\s*([a-zA-Z0-9_\-]+)\s*//;
+	return 1 if grep(/^$1$/, @groups);
 	goto GROUP;
 }
 

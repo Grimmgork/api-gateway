@@ -1,5 +1,6 @@
 package Data;
 use Bytes::Random::Secure qw(random_string_from);
+use MIME::Base64;
 
 sub new {
     my $class = shift;
@@ -7,6 +8,9 @@ sub new {
 		loginfile => shift || "login.txt",
 		tokenfile => shift || "tokens.txt"
     };
+
+    print get_user_groups($self, "root"), "\n";
+
     return bless $self, $class;
 }
 
@@ -15,8 +19,10 @@ sub get_user_groups {
 	my $file = $self->{loginfile};
  	open FH, $file or die "could not open '$file'!";
  	while(<FH>){
- 		if($_ =~ m/^$uname:\S+:([a-z0-9-_ ]+)$/m){
+ 		if($_ =~ m/^$uname:[a-zA-Z0-9+\/=]+:([a-zA-Z0-9_\-:]*)$/){
+			print "match!\n";
 			my @groups = split ":", $1;
+			@groups = grep { $_ ne ''} @groups;
 			close FH;
  			return \@groups;
  		}
@@ -28,11 +34,14 @@ sub get_user_groups {
 sub authenticate {
 	my ($self, $uname, $pwd) = @_;
 	my $file = $self->{loginfile};
+	my $b64pwd = encode_base64($pwd);
+	chomp $b64pwd;
 	open FH, $file or die "could not open '$file'!";
+	my $res;
  	while(<FH>){
- 		if($_ =~ m/^$uname:$pwd:([a-z0-9_:-]+)$/m){ #TODO clean up
+ 		if($_ =~ m/^$uname:$b64pwd:[a-zA-Z0-9_\-:]+$/) {
 			close FH;
- 			return split(":", $1);
+			return 1;
  		}
  	}
 	close FH;
@@ -54,11 +63,11 @@ sub remove_token {
 }
 
 sub add_new_token {
-	my ($self, $uname, $time, $directive, $token) = @_;
+	my ($self, $uname, $time, @directives) = @_;
 	my $file = $self->{tokenfile};
-	$token = random_string_from("abcdefghijklmnopqrstuvwxyz0123456789-_", 8) unless $token;
+	my $token = random_string_from("abcdefghijklmnopqrstuvwxyz0123456789-_", 8);
 	open(FH, ">>", $file);
-	print FH generate_token_row($token, $uname, $time, $directive);
+	print FH "$token:$uname:$time:" . join(":", @directives) . "\n";
 	close FH;
 	return $token;
 }
@@ -67,25 +76,25 @@ sub get_token_fields {
  	my ($self, $token) = @_;
 	my $file = $self->{tokenfile};
 	open FH, $file or die "could not open '$file'\n";
-	my $res;
+	my @res;
 	while(<FH>){
-		if($_ =~ m/^$token\s/){
-			$res = parse_token_fields($_);
+		if($_ =~ m/^$token:/){
+			@res = parse_token_fields($_);
 			last;
 		}
 	}
 	close FH;
-	return $res;
+	return @res;
 }
 
 sub parse_token_fields {
 	$_ = shift;
-	return ($1, $2, $3) if $_ =~ m/^[a-z0-9_\-]+\s+([a-z0-9_\-]+)\s+([\d+]+)(?:\s+([a-z0-9_\-]+))?/i;
+	if($_ =~ m/^[a-z0-9_\-]+:([a-z0-9_\-]+):([\d]+):([a-z0-9_\-:]*)$/i){
+		my @directives = split(":", $3);
+		@directives = grep { $_ ne '' } @directives;
+		return ($1, int($2), @directives);
+	}
 	return undef;
-}
-
-sub generate_token_row {
-	return join(" ", @_) . "\n";
 }
 
 1;
