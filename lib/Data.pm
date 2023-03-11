@@ -2,15 +2,18 @@ package Data;
 use Bytes::Random::Secure qw(random_string_from);
 use MIME::Base64;
 
+use DBI;
+
 sub new {
     my $class = shift;
     my $self = {
 		loginfile => shift || "login.txt",
 		tokenfile => shift || "tokens.txt"
     };
-
-    print get_user_groups($self, "root"), "\n";
-
+    my $dbh = DBI->connect("dbi:SQLite:dbname=state.db","","");
+    my $sth = $dbh->prepare("INSERT INTO login (username, password) VALUES (?, ?)");
+	$sth->execute("root", "password");
+    
     return bless $self, $class;
 }
 
@@ -34,12 +37,10 @@ sub get_user_groups {
 sub authenticate {
 	my ($self, $uname, $pwd) = @_;
 	my $file = $self->{loginfile};
-	my $b64pwd = encode_base64($pwd);
-	chomp $b64pwd;
 	open FH, $file or die "could not open '$file'!";
 	my $res;
  	while(<FH>){
- 		if($_ =~ m/^$uname:$b64pwd:[a-zA-Z0-9_\-:]+$/) {
+ 		if($_ =~ m/^$uname:$pwd:[a-zA-Z0-9_\-:]+$/) {
 			close FH;
 			return 1;
  		}
@@ -54,7 +55,7 @@ sub remove_token {
 	open FH , '<', $file or die "Can't open '$file'!\n";
 	my @lines;
 	while(<FH>){
-		push @lines, $_ unless /^$token\s/;
+		push @lines, $_ unless /^$token:/;
 	}
 	close FH;
 	open FH, '>', $file or die "Can't write to $file!\n";
