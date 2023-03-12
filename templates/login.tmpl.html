@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>login</title>
+</head>
+<body>
+<script src="/static/jquery-3.6.4.min.js"></script>
+
+<h2>login</h2>
+
+<form id="login-form">
+	<label for="uname">username:</label><br>
+	<input type="text" id="uname"><br>
+	<label for="pwd">password:</label><br>
+	<input type="password" id="pwd"><br><br>
+	<input type="submit" value="submit">
+</form>
+
+<script>
+	$("#login-form").submit(function(e){
+		const uname = $('input[type="text"]').val();
+		const pwd = $('input[type="password"]').val();
+		var xmlHttp = new XMLHttpRequest();
+    		xmlHttp.open( "POST", "/api/login"); // false for synchronous request
+		xmlHttp.setRequestHeader("auth", uname + ":" + btoa(pwd));
+    		xmlHttp.send( null );
+		return false;
+	});
+</script>
+
+</body>
+</html>

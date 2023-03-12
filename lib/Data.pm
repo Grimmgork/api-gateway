@@ -1,37 +1,51 @@
 package Data;
 use Bytes::Random::Secure qw(random_string_from);
 use MIME::Base64;
-
 use DBI;
 
 sub new {
     my $class = shift;
     my $self = {
-		loginfile => shift || "login.txt",
-		tokenfile => shift || "tokens.txt"
+		filename => shift || "state.db"
     };
-    my $dbh = DBI->connect("dbi:SQLite:dbname=state.db","","");
-    my $sth = $dbh->prepare("INSERT INTO login (username, password) VALUES (?, ?)");
-	$sth->execute("root", "password");
-    
     return bless $self, $class;
+}
+
+sub get_dbh {
+	my $self = shift;
+	unless($self->{dbh}){
+		# connecting the database if not connected
+		$self->{dbh} = prepare_connection($self->{filename});
+		print "new database connection!\n";
+	}
+	return $self->{dbh};
+}
+
+sub prepare_connection {
+	my $filename = shift;
+	my $dbh = DBI->connect("dbi:SQLite:dbname=$filename","","");
+	$dbh->do("PRAGMA foreign_keys = ON");
+	$dbh->do("create table if not exists users (username text primary key)");
+	$dbh->do("create table if not exists passwords (username text primary key, password text not null, foreign key(username) references users(username) ON UPDATE CASCADE ON DELETE CASCADE)");
+	$dbh->do("create table if not exists tokens (token text primary key, username text not null, expiration integer not null, foreign key(username) references users(username) ON UPDATE CASCADE ON DELETE CASCADE)");
+	$dbh->do("create table if not exists apikeys (apikey text primary key, username text not null, foreign key(username) references users(username) ON UPDATE CASCADE ON DELETE CASCADE)");
+	$dbh->do("create table if not exists groups (groupname text primary key)");
+	$dbh->do("create table if not exists user_groups (username text, groupname text, foreign key(username) references users(username) ON UPDATE CASCADE ON DELETE CASCADE, foreign key(groupname) references groups(groupname) ON UPDATE CASCADE ON DELETE CASCADE)");
+	return $dbh;
 }
 
 sub get_user_groups {
  	my ($self, $uname) = @_;
-	my $file = $self->{loginfile};
- 	open FH, $file or die "could not open '$file'!";
- 	while(<FH>){
- 		if($_ =~ m/^$uname:[a-zA-Z0-9+\/=]+:([a-zA-Z0-9_\-:]*)$/){
-			print "match!\n";
-			my @groups = split ":", $1;
-			@groups = grep { $_ ne ''} @groups;
-			close FH;
- 			return \@groups;
- 		}
- 	}
-	close FH;
- 	return undef;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("select (groupname) from user_groups where username=?");
+	$sth->execute($uname);
+	my @groups;
+	my $gname;
+	while($gname = $sth->fetchrow_array()){
+		push @groups, $gname;
+	}
+	$sth->finish;
+ 	return @groups;
 }
 
 sub authenticate {
