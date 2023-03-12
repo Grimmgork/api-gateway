@@ -48,7 +48,7 @@ my $login = sub {
 				DATA->add_new_token($token, $1, time() + 60*60);
 				return [200, ["set-cookie" => "token=$token", "content-type" => "text/plain"], ["login successful!"]];
 			}
-			return [403, ["content-type" => "text/plain"], ["invalid credentials!"]];
+			return [401, ["content-type" => "text/plain"], ["invalid credentials!"]];
 		}
 		return [400, ["content-type" => "text/plain"], ["malformed request!"]];
 	}
@@ -64,17 +64,10 @@ my $logout = sub {
 	return [307, ["location" => "/login"]];
 };
 
-my $mw = sub {
-    my $env = shift;
-    my $res = $app->($env);
-    $res->[0] = 500 unless $res->[2] == 200;
-    $res;
-};
-
 builder {
 	enable "Plack::Middleware::Token", data => DATA;
 	enable "Plack::Middleware::CondRedirect";
-	# enable "Plack::Middleware::Apikey", data => DATA;
+	enable "Plack::Middleware::Apikey", data => DATA;
 	mount "/favicon.ico" => Plack::App::File->new(file => './static/favicon.ico')->to_app;
 	mount "/static" => Plack::App::File->new(root => "./static")->to_app;
 	mount "/login" => $login;

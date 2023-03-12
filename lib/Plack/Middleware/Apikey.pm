@@ -8,9 +8,16 @@ sub call {
 	my($self, $env) = @_;
 	my $req = Plack::Request->new($env);
 	my $data = $self->{data};
-
-	return undef;
 	
+	unless($env->{LOGIN}){
+		if(my $apikey = $req->header("apikey")){
+			if(my $username = $data->login_apikey($apikey)){
+				print "logged in as $username with apikey $apikey\n";
+				$env->{LOGIN} = $username;
+			}
+		}
+	}
+	return $self->app->($env);
 }
 
 1;

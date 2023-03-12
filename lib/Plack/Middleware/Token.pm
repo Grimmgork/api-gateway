@@ -9,15 +9,12 @@ sub call {
 	my $req = Plack::Request->new($env);
 	my $data = $self->{data};
 
-	if($env->{LOGIN}){
-		return $self->app->($env);
-	}
-
-	# token login
-	if(my $token = $req->cookies->{token}){
-		if(my $uname = authenticate_token($data, $token)){
-			$env->{LOGIN} = $uname;
-			$env->{TOKEN} = $token;
+	unless($env->{LOGIN}){
+		if(my $token = $req->cookies->{token}){
+			if(my $uname = authenticate_token($data, $token)){
+				$env->{LOGIN} = $uname;
+				$env->{TOKEN} = $token;
+			}
 		}
 	}
 
