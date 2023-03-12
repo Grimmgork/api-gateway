@@ -8,7 +8,13 @@ use Plack::Middleware::ReqMatch;
 sub call {
 	my($self, $env) = @_;
 	my $req = Plack::Request->new($env);
-	return $self->app->($env) if valid_request($self->{file}, $env->{GROUPS}, $req->method, $req->path);
+	my $data = $self->{data};
+
+	my $uname = $env->{LOGIN};
+	return [401, [], ["unauthorized!"]] unless $uname;
+
+	my @groups = $data->get_user_groups($uname);
+	return $self->app->($env) if valid_request($self->{file}, \@groups, $req->method, $req->path);
 	return [403, [], ["forbidden!"]];
 }
 

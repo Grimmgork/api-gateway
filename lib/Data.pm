@@ -1,5 +1,4 @@
 package Data;
-use Bytes::Random::Secure qw(random_string_from);
 use MIME::Base64;
 use DBI;
 
@@ -48,68 +47,60 @@ sub get_user_groups {
  	return @groups;
 }
 
-sub authenticate {
+sub login_password {
 	my ($self, $uname, $pwd) = @_;
-	my $file = $self->{loginfile};
-	open FH, $file or die "could not open '$file'!";
-	my $res;
- 	while(<FH>){
- 		if($_ =~ m/^$uname:$pwd:[a-zA-Z0-9_\-:]+$/) {
-			close FH;
-			return 1;
- 		}
- 	}
-	close FH;
-	return undef;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("select (username) from passwords where username=? and password=?");
+	$sth->execute($uname, $pwd);
+	my $login = $sth->fetchrow_array();
+	$sth->finish;
+	return $login;
 }
 
-sub remove_token {
+sub login_apikey {
+	my ($self, $apikey) = @_;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("select (username) from apikeys where apikey=?");
+	$sth->execute($apikey);
+	my $uname = $sth->fetchrow_array();
+	$sth->finish;
+	return $uname;
+}
+
+sub remove_token { # TODO
 	my ($self, $token) = @_;
-	my $file = $self->{tokenfile};
-	open FH , '<', $file or die "Can't open '$file'!\n";
-	my @lines;
-	while(<FH>){
-		push @lines, $_ unless /^$token:/;
-	}
-	close FH;
-	open FH, '>', $file or die "Can't write to $file!\n";
-	print FH @lines;
-	close FH;
+	return unless $token;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("delete from tokens where token=?");
+	$sth->execute($token);
 }
 
 sub add_new_token {
-	my ($self, $uname, $time, @directives) = @_;
-	my $file = $self->{tokenfile};
-	my $token = random_string_from("abcdefghijklmnopqrstuvwxyz0123456789-_", 8);
-	open(FH, ">>", $file);
-	print FH "$token:$uname:$time:" . join(":", @directives) . "\n";
-	close FH;
-	return $token;
-}
-
-sub get_token_fields {
- 	my ($self, $token) = @_;
-	my $file = $self->{tokenfile};
-	open FH, $file or die "could not open '$file'\n";
-	my @res;
-	while(<FH>){
-		if($_ =~ m/^$token:/){
-			@res = parse_token_fields($_);
-			last;
-		}
-	}
-	close FH;
-	return @res;
-}
-
-sub parse_token_fields {
-	$_ = shift;
-	if($_ =~ m/^[a-z0-9_\-]+:([a-z0-9_\-]+):([\d]+):([a-z0-9_\-:]*)$/i){
-		my @directives = split(":", $3);
-		@directives = grep { $_ ne '' } @directives;
-		return ($1, int($2), @directives);
-	}
+	my ($self, $token, $uname, $time, $directives) = @_;
+	return undef unless $token and $uname and $time; 
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("insert into tokens (token, username, expiration) values (?, ?, ?)");
+	my $res = $sth->execute($token, $uname, $time);
+	$sth->finish;
+	return $token if $res;
 	return undef;
+}
+
+sub find_token {
+ 	my ($self, $token) = @_;
+	return undef unless $token;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("select token, username, expiration from tokens where token=?");
+	$sth->execute($token);
+	return $sth->fetchrow_array();
+}
+
+sub remove_tokens_from_user {
+	my ($self, $uname) = @_;
+	return unless $uname;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("delete from tokens where username=?");
+	$sth->execute($uname);
 }
 
 1;
