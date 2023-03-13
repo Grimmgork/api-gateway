@@ -13,7 +13,7 @@ sub call {
 		if(my $token = $req->cookies->{token}){
 			if(my $uname = authenticate_token($data, $token)){
 				$env->{LOGIN} = $uname;
-				$env->{TOKEN} = $token;
+				$env->{TOKEN} = $token; # add token reference for logging out
 			}
 		}
 	}

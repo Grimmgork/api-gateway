@@ -67,7 +67,7 @@ sub login_apikey {
 	return $uname;
 }
 
-sub remove_token { # TODO
+sub remove_token {
 	my ($self, $token) = @_;
 	return unless $token;
 	my $dbh = get_dbh($self);
@@ -93,14 +93,6 @@ sub find_token {
 	my $sth = $dbh->prepare("select token, username, expiration from tokens where token=?");
 	$sth->execute($token);
 	return $sth->fetchrow_array();
-}
-
-sub remove_tokens_from_user {
-	my ($self, $uname) = @_;
-	return unless $uname;
-	my $dbh = get_dbh($self);
-	my $sth = $dbh->prepare("delete from tokens where username=?");
-	$sth->execute($uname);
 }
 
 1;

@@ -4,3 +4,4 @@ tokens.txt
 .vscode
 *.db
 *.sqlite
+./static
