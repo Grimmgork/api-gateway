@@ -33,7 +33,7 @@ my $login = sub { # todo referer location as query parameter
 
 	# loginpage
 	if($req->method eq "GET"){
-		# ?logout
+		# logout if already logged in
 		if(my $token = $env->{TOKEN}){
 			DATA->remove_token($token);
 		}
@@ -59,7 +59,6 @@ my $login = sub { # todo referer location as query parameter
 		}
 		return [400, ["content-type" => "text/plain"], ["malformed request!"]];
 	}
-
 	return [404, [], []];
 };
 
@@ -76,7 +75,6 @@ builder {
 	mount "/login" => $login;
 	mount "/api" => builder {
 		enable "Plack::Middleware::Sentinel", data => DATA, file => FILE_POLICY; # authorization
-		mount "/static" => Plack::App::File->new(root => "./static/sentinel")->to_app;
 		mount "/mclip" => $mclip; # Plack::App::Proxy->new(remote => MCLIPD_HOST)->to_app;
 	}
 };
