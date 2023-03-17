@@ -22,7 +22,6 @@ sub valid_request {
 	my ($file, $groups_ref, $method, $path) = @_;
 	my @segments = split "/", $path;
 	@segments = grep { $_ ne '' } @segments;
-	print "array: $groups_ref\n";
 	return Plack::Middleware::ReqMatch::match_request($file, $groups_ref, $method, @segments);
 }
 

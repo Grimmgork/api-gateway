@@ -15,6 +15,7 @@ sub get_dbh {
 	unless($self->{dbh}){
 		# connecting the database if not connected
 		$self->{dbh} = prepare_connection($self->{filename});
+		remove_expired_tokens($self, time()); # clean up the database, maybe move it into external script
 		print "new database connection!\n";
 	}
 	return $self->{dbh};
@@ -93,6 +94,14 @@ sub find_token {
 	my $sth = $dbh->prepare("select token, username, expiration from tokens where token=?");
 	$sth->execute($token);
 	return $sth->fetchrow_array();
+}
+
+sub remove_expired_tokens {
+	my ($self, $time) = @_;
+	return unless $time;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("delete from tokens where expiration < ?");
+	$sth->execute($time);
 }
 
 1;

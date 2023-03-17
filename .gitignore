@@ -5,3 +5,4 @@ tokens.txt
 *.db
 *.sqlite
 ./static
+out.log

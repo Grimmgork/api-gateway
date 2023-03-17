@@ -33,7 +33,7 @@
 				window.location.href = '/api/mclip';
 				return;
 			}
-			if(xhr.status === 403){
+			if(xhr.status === 401){
 				inpt_pwd.val("");
 				alert("invalid credentials!");
 			}
