@@ -12,9 +12,9 @@ sub new {
 }
 
 sub log {
-	my ($self, $msg, $loglevel) = @_;
+	my ($self, $msg) = @_;
 	if(openlog($self->{name}, "ndelay,pid", $self->{facility})){
-		if(syslog($loglevel || $self->{loglevel}, $msg)){
+		if(syslog($self->{loglevel}, $msg)){
 			closelog();
 			print "logged!\n";
 			return 1;

@@ -6,3 +6,6 @@ tokens.txt
 *.sqlite
 ./static
 out.log
+nohup.out
+urls.txt
+siege.core

@@ -1,6 +1,7 @@
 package Data;
 use MIME::Base64;
 use DBI;
+use Bytes::Random::Secure qw(random_string_from);
 
 sub new {
     my $class = shift;
@@ -77,8 +78,9 @@ sub remove_token {
 }
 
 sub add_new_token {
-	my ($self, $token, $uname, $time, $directives) = @_;
-	return undef unless $token and $uname and $time; 
+	my ($self, $uname, $time, $directives) = @_;
+	return undef unless $uname and $time;
+	my $token = random_string_from("abcdefghijklmnopqrstuvwxyz0123456789_-", 15);
 	my $dbh = get_dbh($self);
 	my $sth = $dbh->prepare("insert into tokens (token, username, expiration) values (?, ?, ?)");
 	my $res = $sth->execute($token, $uname, $time);
