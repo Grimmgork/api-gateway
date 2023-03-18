@@ -6,7 +6,7 @@ use Plack::Util;
 sub call {
 	my($self, $env) = @_;
 	my $req = Plack::Request->new($env);
-	return [307, ["location" => $self->{url}], []];
+	return [307, ["location" => $self->{location}], []];
 }
 
 1;

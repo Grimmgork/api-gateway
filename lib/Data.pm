@@ -98,6 +98,56 @@ sub find_token {
 	return $sth->fetchrow_array();
 }
 
+sub add_user {
+	my ($self, $uname) = @_;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("insert into users (username) values (?)");
+	my $res = $sth->execute($uname);
+	$sth->finish;
+	return $res;
+}
+
+sub add_group {
+	my ($self, $gname) = @_;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("insert into groups (groupname) values (?)");
+	my $res = $sth->execute($gname);
+	$sth->finish;
+	return $res;
+}
+
+sub add_group_to_user {
+	my ($self, $gname, $uname) = @_;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("insert into user_groups (username, groupname) values (?, ?)");
+	$sth->execute($uname, $gname);
+	$sth->finish;
+}
+
+sub remove_group_from_user {
+	my ($self, $gname, $uname) = @_;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("delete from user_groups where username=? and groupname=?");
+	$sth->execute($uname, $gname);
+	$sth->finish;
+}
+
+sub remove_user {
+	my ($self, $uname) = @_;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("delete from users where username=?");
+	$sth->execute($uname);
+	$sth->finish;
+}
+
+sub remove_group {
+	my ($self, $gname) = @_;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("delete from groups where groupname=?");
+	$sth->execute($gname);
+	$sth->finish;
+}
+
 sub remove_expired_tokens {
 	my ($self, $time) = @_;
 	return unless $time;
