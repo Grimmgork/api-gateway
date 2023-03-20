@@ -17,6 +17,7 @@
 </form>
 
 <script>
+	const referer = "<TMPL_VAR NAME=REFERER ESCAPE=HTML>";
 	$("#login-form").submit(function(e){
 		const inpt_btn = $("#submit_btn");
 		const inpt_pwd = $("input[type='password']");
@@ -30,7 +31,7 @@
 		inpt_btn.prop("disabled", true);
 		xhr.onload = () => {
 			if(xhr.status === 200){
-				window.location.href = '/api/mclip';
+				window.location.href = referer;
 				return;
 			}
 			if(xhr.status === 401){

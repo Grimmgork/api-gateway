@@ -11,7 +11,7 @@ sub call {
 	my $data = $self->{data};
 
 	my $uname = $env->{LOGIN};
-	return [401, [], ["unauthorized!"]] unless $uname;
+	return [401, [], ["unauthenticated!"]] unless $uname;
 
 	my @groups = $data->get_user_groups($uname);
 	return $self->app->($env) if valid_request($self->{file}, \@groups, $req->method, $req->path);

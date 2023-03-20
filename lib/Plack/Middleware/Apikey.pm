@@ -15,6 +15,7 @@ sub call {
 				print "logged in as $username with apikey $apikey\n";
 				$env->{LOGIN} = $username;
 			}
+			return [401, [], []];
 		}
 	}
 	return $self->app->($env);

@@ -16,7 +16,6 @@ sub log {
 	if(openlog($self->{name}, "ndelay,pid", $self->{facility})){
 		if(syslog($self->{loglevel}, $msg)){
 			closelog();
-			print "logged!\n";
 			return 1;
 		}
 	}
