@@ -17,7 +17,7 @@
 </form>
 
 <script>
-	const referer = "<TMPL_VAR NAME=REFERER ESCAPE=HTML>";
+	const redirect = "<TMPL_VAR NAME=REDIRECT ESCAPE=HTML>";
 	$("#login-form").submit(function(e){
 		const inpt_btn = $("#submit_btn");
 		const inpt_pwd = $("input[type='password']");
@@ -27,11 +27,11 @@
 		
 		var xhr = new XMLHttpRequest();
     		xhr.open( "POST", "/login");
-		xhr.setRequestHeader("auth", uname + ":" + btoa(pwd));
+		xhr.setRequestHeader("Authorization", `Basic ${btoa(`${uname}:${pwd}`)}`);
 		inpt_btn.prop("disabled", true);
 		xhr.onload = () => {
 			if(xhr.status === 200){
-				window.location.href = referer;
+				window.location.href = redirect;
 				return;
 			}
 			if(xhr.status === 401){
@@ -39,7 +39,7 @@
 				alert("invalid credentials!");
 			}
 			else{
-				alert("something went wrong! idk check the console?");
+				alert("something went wrong?");
 			}
 
 			inpt_btn.prop("disabled", false);

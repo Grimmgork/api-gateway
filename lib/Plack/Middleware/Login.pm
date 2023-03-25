@@ -4,6 +4,7 @@ use parent qw(Plack::Middleware);
 use MIME::Base64;
 use HTML::Template;
 use Plack::Util;
+use URI;
  
 sub call {
 	my($self, $env) = @_;
@@ -27,18 +28,20 @@ sub call {
 			if($login_token){ # logout if logged in
 				$data->remove_token($login_token);
 			}
-			my $referer = $req->query_parameters->{"referer"};
-			return [200, ["content-type" => "text/html", "set-cookie" => "token="], [$self->{page_content}->({ referer => $referer })]];
+			my $url = URI->new($req->query_parameters->{"redirect"} || $self->{redirect} || "/");
+			return [400, ["content-type" => "text/plain"], ["malformed request!"]] if $url->path eq "/login"; # prevent a login, logout loop ...
+			return [200, ["content-type" => "text/html", "set-cookie" => "token="], [$self->{page_content}->($url->path_query)]];
 		}
 
 		if($req->method eq "POST"){
 			# authenticate with credentials and return token as cookie
-			if($req->headers->header('auth') =~ m/^([a-z0-9-_]+):([a-z0-9=+\/]+)$/i){
-				if(my $login = $data->login_password($1, decode_base64($2))){
+			if($req->headers->header('authorization') =~ m/^basic +([a-z0-9+\/]+=*)$/i){
+				my ($uname, $pwd) = split ":", decode_base64($1), 2;
+				if(my $login = $data->login_password($uname, $pwd)){
 					print "logged in as $login!\n";
-					$env->{logger}->log("logged in as $login") if $env->{logger};
+					$self->{logger}->log("$login") if $self->{logger};
 					my $token = $data->add_new_token($login, time() + 60*5);
-					return [200, ["set-cookie" => "token=$token", "content-type" => "text/plain"], ["login successful!"]];
+					return [200, ["set-cookie" => "token=$token; httponly; SameSite=Strict", "content-type" => "text/plain"], ["login successful!"]];
 				}
 				return [401, ["content-type" => "text/plain"], ["invalid credentials!"]];
 			}

@@ -10,9 +10,9 @@ sub call {
 
 		my $addr = $req->header("X-Forwarded-For") || $req->address;
 		my $method = $req->method;
-		my $uri = $req->uri;
+		my $path = $req->path;
 
-		$self->{logger}->log("$addr $method $uri");
+		$self->{logger}->log("$addr $method $path");
 	}
 	return $self->app->($env);
 }
