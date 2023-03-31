@@ -9,8 +9,9 @@ sub call {
 	my($self, $env) = @_;
 	my $req = Plack::Request->new($env);
 	my $data = $self->{data};
+	my $env_login = $self->{env_login};
 
-	my $uname = $env->{LOGIN};
+	my $uname = $env->{$env_login};
 	return [401, [], ["unauthenticated!"]] unless $uname;
 
 	my @groups = $data->get_user_groups($uname);

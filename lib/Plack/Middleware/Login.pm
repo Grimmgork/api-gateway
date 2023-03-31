@@ -10,14 +10,15 @@ sub call {
 	my($self, $env) = @_;
 	my $req = Plack::Request->new($env);
 	my $data = $self->{data};
+	my $env_login = $self->{env_login} || "login";
 
-	return $self->app->($env) if $env->{LOGIN}; # nothing to do here, next middleware
+	return $self->app->($env) if $env->{$env_login}; # nothing to do here, next middleware
 
 	# try login with token
 	my $login_token;
 	if(my $token = $req->cookies->{token}){
 		if(my $uname = authenticate_token($data, $token)){
-			$env->{LOGIN} = $uname;
+			$env->{$env_login} = $uname;
 			$login_token = $token;
 		}
 	}
@@ -30,7 +31,7 @@ sub call {
 			}
 			my $url = URI->new($req->query_parameters->{"redirect"} || $self->{redirect} || "/");
 			return [400, ["content-type" => "text/plain"], ["malformed request!"]] if $url->path eq "/login"; # prevent a login, logout loop ...
-			return [200, ["content-type" => "text/html", "set-cookie" => "token="], [$self->{page_content}->($url->path_query)]];
+			return [200, ["content-type" => "text/html", "set-cookie" => "token=", "cache-control" => "no-cache"], [$self->{page_content}->($url->path_query)]];
 		}
 
 		if($req->method eq "POST"){
@@ -40,7 +41,7 @@ sub call {
 				if(my $login = $data->login_password($uname, $pwd)){
 					print "logged in as $login!\n";
 					$self->{logger}->log("$login") if $self->{logger};
-					my $token = $data->add_new_token($login, time() + 60*5);
+					my $token = $data->add_new_token($login, time() + 60*60*60);
 					return [200, ["set-cookie" => "token=$token; httponly; SameSite=Strict", "content-type" => "text/plain"], ["login successful!"]];
 				}
 				return [401, ["content-type" => "text/plain"], ["invalid credentials!"]];
