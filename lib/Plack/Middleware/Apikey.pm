@@ -14,7 +14,6 @@ sub call {
 	unless($env->{$env_login}){
 		if($req->headers->header('authorization') =~ m/^bearer +([a-z0-9]+)$/i){
 			if(my $username = $data->login_apikey($1)){
-				$self->{logger}->log("$username apikey " . substr($1, 0, 5) . "...\n") if $self->{logger};
 				$env->{$env_login} = $username;
 				return $self->app->($env);
 			}

@@ -40,7 +40,6 @@ sub call {
 				my ($uname, $pwd) = split ":", decode_base64($1), 2;
 				if(my $login = $data->login_password($uname, $pwd)){
 					print "logged in as $login!\n";
-					$self->{logger}->log("$login") if $self->{logger};
 					my $token = $data->add_new_token($login, time() + 60*60*60);
 					return [200, ["set-cookie" => "token=$token; httponly; SameSite=Strict", "content-type" => "text/plain"], ["login successful!"]];
 				}
