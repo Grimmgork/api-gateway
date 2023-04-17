@@ -38,14 +38,12 @@ my $mount_redirect_host = sub { # rewrite redirects from proxy to mount on own h
 				&MCLIPD_HOST => "/mclip",
 				&LOGD_HOST   => "/logd"
 			);
-			if($res->[0] == 307 and Plack::Util::header_exists($res->[1], "location")){
-				if(my $loc = Plack::Util::header_get($res->[1], "location")){
-					foreach my $host (keys %rules)
-					{
-						my $mount = $rules{$host};
-						$loc =~ s/^${host}/${mount}/;
-						Plack::Util::header_set($res->[1], "location", $loc);
-					}
+			if(my $loc = Plack::Util::header_get($res->[1], "location")){
+				foreach my $host (keys %rules)
+				{
+					my $mount = $rules{$host};
+					$loc =~ s/^${host}/${mount}/;
+					Plack::Util::header_set($res->[1], "location", $loc);
 				}
 			}
 		});
