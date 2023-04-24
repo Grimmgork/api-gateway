@@ -12,14 +12,15 @@ use Plack::Middleware::Apikey;
 use Plack::Middleware::Login;
 use Plack::Middleware::Sentinel;
 use Plack::Middleware::ReqLog;
+use Plack::Middleware::HostSwitch;
 
 use Plack::App::Redirect;
 
 use Data;
 use SysLogger;
 
-use constant MCLIPD_HOST	 => "http://127.0.0.1:5000";
-use constant LOGD_HOST    => "http://127.0.0.1:5500";
+use constant HOST_MCLIPD  => "http://127.0.0.1:5000";
+use constant HOST_LOGD    => "http://127.0.0.1:5500";
 use constant FILE_POLICY	 => "./policy.txt";
 use constant FILE_LOGIN   => "./templates/login.html";
 
@@ -35,12 +36,11 @@ my $mount_redirect_host = sub { # rewrite redirects from proxy to mount on own h
 		return Plack::Util::response_cb($app->($env), sub {
 			my $res = shift;
 			my %rules = (
-				&MCLIPD_HOST => "/mclip",
-				&LOGD_HOST   => "/logd"
+				&HOST_MCLIPD => "/mclip",
+				&HOST_LOGD   => "/logd"
 			);
 			if(my $loc = Plack::Util::header_get($res->[1], "location")){
-				foreach my $host (keys %rules)
-				{
+				foreach my $host (keys %rules) {
 					my $mount = $rules{$host};
 					$loc =~ s/^${host}/${mount}/;
 					Plack::Util::header_set($res->[1], "location", $loc);
@@ -74,20 +74,27 @@ my $log_login = sub {
 	};
 };
 
+my $app = sub {
+     my $env = shift;
+     return [ 200, ["content-type" => "text/plain"], ["hello there!"] ];
+};
+
 builder {
 	enable "Plack::Middleware::ReqLog", logger => LOG_REQUEST;
 	enable "Plack::Middleware::Apikey", data => DATA, env_login => "login"; # apikey login
-	enable "Plack::Middleware::Login", data => DATA, env_login => "login", page_content => \&login_page, redirect => "/mclip"; # login
+	enable "Plack::Middleware::Login", data => DATA, env_login => "login", page_content => \&login_page, redirect => "/"; # login
 	enable $red_to_login;
 	enable $log_login;
 	enable "Plack::Middleware::Sentinel", data => DATA, env_login => "login", file => FILE_POLICY; # authorization
-	enable $mount_redirect_host;
-	mount "/mclip" => Plack::App::Proxy->new(remote => MCLIPD_HOST)->to_app;
-	mount "/logd" => Plack::App::Proxy->new(remote => LOGD_HOST)->to_app;
+	enable "Plack::Middleware::HostSwitch", host => "mclip.grmgrk.com", next => Plack::App::Proxy->new(remote => HOST_MCLIPD)->to_app;
+	enable "Plack::Middleware::HostSwitch", host => "logd.grmgrk.com", next => Plack::App::Proxy->new(remote => HOST_LOGD)->to_app;
+	sub {
+		return [ 404, ["content-type" => "text/plain"], ["nothing to see here ..."]];
+	};
 };
 
 sub login_page {
-	my $templ = HTML::Template->new(filename => FILE_LOGIN, cache => 1);
+	my $templ = HTML::Template->new(filename => FILE_LOGIN);
 	$templ->param(REDIRECT => shift);
 	return $templ->output;
 }
