@@ -24,7 +24,7 @@
 		const pwd = inpt_pwd.val();
 		
 		var xhr = new XMLHttpRequest();
-    		xhr.open( "POST", "/api/login");
+    		xhr.open( "POST", "/login");
 		xhr.setRequestHeader("Authorization", `Basic ${btoa(`${uname}:${pwd}`)}`);
 		inpt_btn.prop("disabled", true);
 		xhr.onload = () => {

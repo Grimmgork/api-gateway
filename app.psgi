@@ -29,6 +29,9 @@ use constant DATA => Data->new("state.db");
 use constant LOG_REQUEST => SysLogger->new("request", "local0", "debug");
 use constant LOG_LOGIN   => SysLogger->new("login", "local0", "info");
 
+use constant GROUP_MCLIP_OWNER => "mclip_owner";
+use constant GROUP_LOGD_OWNER => "mclip_owner";
+
 my $mount_redirect_host = sub { # rewrite redirects from proxy to mount on own host
      my $app = shift;
      sub {
@@ -79,15 +82,25 @@ my $app = sub {
      return [ 200, ["content-type" => "text/plain"], ["hello there!"] ];
 };
 
+my $mclip = builder {
+	enable "Sentinel", group => GROUP_MCLIP_OWNER;
+	Plack::App::Proxy->new(remote => HOST_MCLIPD)->to_app;
+};
+
+my $logd = builder {
+	enable "Sentinel", group => GROUP_LOGD_OWNER;
+	Plack::App::Proxy->new(remote => HOST_LOGD)->to_app;
+};
+
 builder {
-	enable "Plack::Middleware::ReqLog", logger => LOG_REQUEST;
-	enable "Plack::Middleware::Apikey", data => DATA, env_login => "login"; # apikey login
-	enable "Plack::Middleware::Login", data => DATA, env_login => "login", page_content => \&login_page, redirect => "/"; # login
+	enable "ReqLog", logger => LOG_REQUEST;
+	enable "Apikey", data => DATA; # apikey login
+	enable "Login", data => DATA, page_content => \&login_page, redirect => "/"; # login
 	enable $red_to_login;
 	enable $log_login;
-	enable "Plack::Middleware::Sentinel", data => DATA, env_login => "login", file => FILE_POLICY; # authorization
-	enable "Plack::Middleware::HostSwitch", host => "mclip.grmgrk.com", next => Plack::App::Proxy->new(remote => HOST_MCLIPD)->to_app;
-	enable "Plack::Middleware::HostSwitch", host => "logd.grmgrk.com", next => Plack::App::Proxy->new(remote => HOST_LOGD)->to_app;
+	enable "Sentinel"; # authenticated?
+	enable "HostSwitch", host => "mclip.grmgrk.com", next => $mclip; # mclip 
+	enable "HostSwitch", host => "logd.grmgrk.com", next => $logd; # logd
 	sub {
 		return [ 404, ["content-type" => "text/plain"], ["nothing to see here ..."]];
 	};
