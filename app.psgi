@@ -26,15 +26,10 @@ use constant DOMAIN		 => "grmgrk.com";
 use constant FILE_LOGIN   => "./templates/login.html";
 
 use constant DATA			=> Data->new("state.db");
-use constant SESSION_STORE 	=> SessionStore->new(DATA, \&new_tokenid);
 
 use constant LOG_REQUEST => SysLogger->new("request", "local0", "debug");
 use constant LOG_LOGIN   => SysLogger->new("login", "local0", "info");
 
-
-sub new_tokenid {
-	return random_string_from("abcdefghijklmnopqrstuvwxyz0123456789_-", 15);
-}
 
 my $log_login = sub {
 	my $app = shift;
@@ -155,16 +150,20 @@ my $logd = builder {
 builder {
 	enable "ReqLog", logger => LOG_REQUEST;
 	enable $apikey;
-	enable "Session", store => SESSION_STORE, domain => DOMAIN;
+	enable "Session", store => SessionStore->new(DATA, \&new_tokenid), domain => DOMAIN;
 	enable $rotate_token;
 	enable $login;
 	enable $log_login;
 	enable $redirect_to_login;
 	enable $permissions; # load permissions to env
 	enable "Sentinel", key => "permissions"; # authenticated?
-	enable "HostSwitch", host => "mclip.".DOMAIN, next => $mclip; # mclip 
+	enable "HostSwitch", host => "mclip.".DOMAIN, next => $mclip; # mclip
 	enable "HostSwitch", host => "log.".DOMAIN, next => $logd; # logd
 	sub {
 		return [ 404, ["content-type" => "text/plain"], ["nothing to see here ..."]];
 	};
 };
+
+sub new_tokenid {
+	return random_string_from("abcdefghijklmnopqrstuvwxyz0123456789_-", 15);
+}
