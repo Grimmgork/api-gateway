@@ -1,7 +1,6 @@
 package Data;
 use MIME::Base64;
 use DBI;
-use Bytes::Random::Secure qw(random_string_from);
 
 sub new {
     my $class = shift;
@@ -80,9 +79,8 @@ sub remove_token {
 }
 
 sub add_new_token {
-	my ($self, $uname, $time, $directives) = @_;
-	return undef unless $uname and $time;
-	my $token = random_string_from("abcdefghijklmnopqrstuvwxyz0123456789_-", 15);
+	my ($self, $token, $uname, $time, $directives) = @_;
+	return undef unless $uname and $time and $token;
 	my $dbh = get_dbh($self);
 	my $sth = $dbh->prepare("insert into tokens (token, username, expiration) values (?, ?, ?)");
 	my $res = $sth->execute($token, $uname, $time);
@@ -98,6 +96,15 @@ sub find_token {
 	my $sth = $dbh->prepare("select token, username, expiration from tokens where token=?");
 	$sth->execute($token);
 	return $sth->fetchrow_array();
+}
+
+sub rotate_token {
+	my ($self, $token, $ntoken) = @_;
+	return undef unless $token and $ntoken;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("update tokens set token=? where token=?");
+	$sth->execute($ntoken, $token);
+	return $ntoken;
 }
 
 sub add_user {

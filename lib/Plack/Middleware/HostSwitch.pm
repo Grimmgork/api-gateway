@@ -8,7 +8,7 @@ use MIME::Base64;
 sub call {
 	my($self, $env) = @_;
 	my $req = Plack::Request->new($env);
-	if($req->uri->host eq "mclip.grmgrk.com"){
+	if($req->uri->host eq $self->{host}){
 		return $self->{next}->($env);
 	}
 	return $self->app->($env);
