@@ -7,7 +7,7 @@ use Plack::Middleware::ReqMatch;
 
 sub call {
 	my($self, $env) = @_;
-	my $permissions = $env->{$self->{key} || 'permissions'};
+	my $permissions = $env->{'sentinel.permissions'};
 	my $perm = $self->{perm};
 	
 	return [401, [], ["unauthenticated!"]] unless $permissions;

@@ -1,9 +1,7 @@
 package Plack::Middleware::HostSwitch;
 use parent qw(Plack::Middleware);
 
-use HTML::Template;
 use Plack::Util;
-use MIME::Base64;
  
 sub call {
 	my($self, $env) = @_;

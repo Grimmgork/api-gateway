@@ -75,7 +75,6 @@ sub remove_token {
 	my $sth = $dbh->prepare("delete from tokens where token=?");
 	$sth->execute($token);
 	$sth->finish;
-	print "tokens removed !!\n";
 }
 
 sub add_new_token {
@@ -91,6 +90,7 @@ sub add_new_token {
 
 sub find_token {
  	my ($self, $token) = @_;
+	print "request for token $token\n";
 	return undef unless $token;
 	my $dbh = get_dbh($self);
 	my $sth = $dbh->prepare("select token, username, expiration from tokens where token=?");
