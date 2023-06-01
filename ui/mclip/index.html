@@ -1,0 +1,70 @@
+<input type="file" id="file-selector" accept="*" >
+<div>
+	<button onclick="">submit</button>
+</div>
+
+<script src="https://unpkg.com/mithril/mithril.js"></script>
+<script>
+	m.mount(document.root)
+</script>
+<script>
+	class Api {
+		#token;
+
+		constructor(baseurl){
+			this.baseurl = baseurl;
+			this.#token = "k2o7n7h6b2yuwj011ay0";
+		}
+
+		#base_header(){
+			return {
+				'Authorization': `bearer ${this.#token}`
+			}
+		}
+
+		async login(uname, pwd) {
+
+		}
+
+		async refresh_token(){
+
+		}
+
+		async get_data() {
+			const response = await fetch(new URL("/", this.baseurl),{
+				method: 'get',
+				headers: {...this.#base_header()}
+			})
+			return (await response).body
+		}
+
+		async upload_file(blob){
+			const response = await fetch(new URL("/", this.baseurl),{
+				method: 'post',
+				headers: {...this.#base_header()},
+				body: blob
+			})
+			return await response
+		}
+
+		async upload_text(text){
+			var blob = new Blob([text], {
+    				type: 'text/plain'
+			});
+			this.upload_file(blob, "text/plain")
+		}
+
+		async get_info(){
+			const response = await fetch(new URL("/info", this.baseurl),{
+				method: 'get',
+				headers: {...this.#base_header()}
+			})
+			return response.json();
+		}
+	}
+
+	const api = new Api("https://mclip.grmgrk.com");
+	api.get_data().then((data) => {
+		console.log(data.json());
+	})
+</script>

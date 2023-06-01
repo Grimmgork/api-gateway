@@ -90,7 +90,6 @@ sub add_new_token {
 
 sub find_token {
  	my ($self, $token) = @_;
-	print "request for token $token\n";
 	return undef unless $token;
 	my $dbh = get_dbh($self);
 	my $sth = $dbh->prepare("select token, username, expiration from tokens where token=?");

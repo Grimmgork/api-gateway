@@ -2,6 +2,7 @@ use Plack::Builder;
 use Plack::Request;
 use Plack::App::Proxy;
 use Plack::App::File;
+use Plack::Middleware::DirIndex;
 use Plack::Util;
 use Plack::Session;
 use Plack::Session::State::Cookie;
@@ -12,7 +13,7 @@ use MIME::Base64;
 use Bytes::Random::Secure qw(random_string_from);
 use HTML::Template;
 
-use lib './lib';
+use lib './lib'; # local library
 
 use Plack::Middleware::Sentinel;
 use Plack::Middleware::ReqLog;
@@ -50,23 +51,6 @@ my $apikey = sub {
 	};
 };
 
-my $permissions = sub {
-	my $app = shift;
-	sub {
-		my $env = shift;
-		if(my $uname = $env->{'psgix.session'}->{login}){
-			$env->{login} = $uname;
-		}
-		if(my $uname = $env->{login}){
-			my @groups = DATA->get_user_groups($uname);
-			$env->{'sentinel.userid'} = $uname;
-			$env->{'sentinel.permissions'} = \@groups;
-			LOG_LOGIN->log($uname); # log the login
-		}
-		return $app->($env);
-	};
-};
-
 sub template_login_page {
 	my $templ = HTML::Template->new(filename => FILE_LOGIN);
 	$templ->param(REDIRECT => shift);
@@ -82,11 +66,11 @@ my $password = sub {
 
 		if($req->method eq "GET" and $req->path eq "/login"){
 			$session->expire();
-			my $url = URI->new($req->query_parameters->{"redirect"} || $self->{redirect} || "/");
+			my $url = URI->new($req->query_parameters->{"redirect"} || $self->{redirect} || "/ui");
 			if($url->path eq "/login") { # prevent a login, logout loop ...
 				return [400, ["content-type" => "text/plain"], ["malformed request!"]];
 			}
-			return [200, ["content-type" => "text/html", "cache-control" => "no-cache"], [template_login_page($url->path_query)]];
+			return [200, ["content-type" => "text/html", "cache-control" => "no-cache"], [ template_login_page($url->path_query) ]];
 		}
 
 		if($req->method eq "POST" and $req->path eq "/login"){
@@ -126,7 +110,14 @@ my $login = sub {
 	return builder {
 		enable "Session", 
 			store => SessionStore->new(DATA), 
-			state => Plack::Session::State::Cookie->new(sid_generator => \&new_tokenid, sid_validator => qr/\A[0-9a-z]{15}\Z/, domain => DOMAIN, httponly => 1, secure => 1, samesite => 'lax');
+			state => Plack::Session::State::Cookie->new(
+				sid_generator => sub { return random_string_from("abcdefghijklmnopqrstuvwxyz0123456789", 15); },
+				sid_validator => qr/\A[0-9a-z]{15}\Z/, 
+				domain => DOMAIN, 
+				httponly => 1, 
+				secure => 1, 
+				samesite => 'strict'
+			);
 		enable $password;
 		enable $redirect_to_login;
 		$app;
@@ -135,30 +126,38 @@ my $login = sub {
 
 my $mclip = builder {
 	enable "Sentinel", perm => "mclip_owner";
-	Plack::App::Proxy->new(remote => HOST_MCLIPD)->to_app;
+	mount "/" => Plack::App::Proxy->new(remote => HOST_MCLIPD)->to_app;
 };
 
 my $logd = builder {
 	enable "Sentinel", perm => "logd_owner";
-	Plack::App::Proxy->new(remote => HOST_LOGD)->to_app;
+	mount "/" => Plack::App::Proxy->new(remote => HOST_LOGD)->to_app;
 };
 
 builder {
 	enable "ReqLog", logger => LOG_REQUEST;
 	enable $apikey;
-	enable_if { shift->{login} eq undef } $login; # no need to prompt for password if login via apikey has occured
-	enable $permissions; # load permissions to sentinel.permissions
-	enable "Sentinel"; # authenticated?
+	enable_if { shift->{login} eq undef } $login; # prompt for password if no login via apikey has occured
+	enable "Sentinel",
+		get_uid         => \&get_uid,
+		get_permissions => \&get_permissions; # authenticated?, load permissions to env
 	enable "HostSwitch", host => "mclip.".DOMAIN, next => $mclip; # mclip
 	enable "HostSwitch", host => "log.".DOMAIN, next => $logd; # logd
 	sub { return [ 404, ["content-type" => "text/plain"], ["nothing to see here ..."]]; };
 };
 
-sub is_apikey_req {
-	not $_[0]->{login} eq undef;
+# Sentinel
+
+sub get_uid {
+	my $env = shift;
+	if(my $uname = $env->{'psgix.session'}->{login} || $env->{login}){
+		return $uname;
+	}
+	return undef;
 }
 
-
-sub new_tokenid {
-	return random_string_from("abcdefghijklmnopqrstuvwxyz0123456789", 15);
+sub get_permissions {
+	my $uid = shift;
+	my @permissions = DATA->get_user_groups($uid);
+	return \@permissions;
 }
