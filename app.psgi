@@ -18,6 +18,7 @@ use lib './lib'; # local library
 use Plack::Middleware::Sentinel;
 use Plack::Middleware::ReqLog;
 use Plack::Middleware::HostSwitch;
+use Plack::Middleware::LocationProxy;
 
 use Data;
 use SessionStore;
@@ -64,7 +65,7 @@ my $password = sub {
 		my $req = Plack::Request->new($env);
 		my $session = Plack::Session->new($env);
 
-		if($req->method eq "GET" and $req->path eq "/login"){
+		if($req->method eq "GET" and $req->path eq "/login") {
 			$session->expire();
 			my $url = URI->new($req->query_parameters->{"redirect"} || $self->{redirect} || "/ui");
 			if($url->path eq "/login") { # prevent a login, logout loop ...
@@ -73,7 +74,7 @@ my $password = sub {
 			return [200, ["content-type" => "text/html", "cache-control" => "no-cache"], [ template_login_page($url->path_query) ]];
 		}
 
-		if($req->method eq "POST" and $req->path eq "/login"){
+		if($req->method eq "POST" and $req->path eq "/login") {
 			if($req->headers->header('authorization') =~ m/^basic +([a-z0-9+\/]+=*)$/i){
 				my ($uname, $pwd) = split ":", decode_base64($1), 2;
 				if(my $login = DATA->login_password($uname, $pwd)){
@@ -126,11 +127,13 @@ my $login = sub {
 
 my $mclip = builder {
 	enable "Sentinel", perm => "mclip_owner";
+	enable "LocationProxy", host => HOST_MCLIPD;
 	mount "/" => Plack::App::Proxy->new(remote => HOST_MCLIPD)->to_app;
 };
 
 my $logd = builder {
 	enable "Sentinel", perm => "logd_owner";
+	enable "LocationProxy", host => HOST_LOGD;
 	mount "/" => Plack::App::Proxy->new(remote => HOST_LOGD)->to_app;
 };
 
