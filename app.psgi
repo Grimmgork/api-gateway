@@ -23,6 +23,7 @@ use Plack::Middleware::LocationProxy;
 use Data;
 use SessionStore;
 use SysLogger;
+use Mail;
 
 use constant HOST_MCLIPD => "http://127.0.0.1:5000";
 use constant HOST_LOGD   => "http://127.0.0.1:5500";
@@ -79,8 +80,9 @@ my $password = sub {
 				my ($uname, $pwd) = split ":", decode_base64($1), 2;
 				if(my $login = DATA->login_password($uname, $pwd)){
 					print "logged in as $login!\n";
-					$session->set('expiration', time() + (60*60));
+					$session->set('expiration', time() + (60*60*24*52)); # expiration one year
 					$session->set('login', $login);
+
 					return [200, ["content-type" => "text/plain"], ["login successful!"]];
 				}
 				return [401, ["content-type" => "text/plain"], ["invalid credentials!"]];
