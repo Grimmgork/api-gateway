@@ -18,6 +18,7 @@ sub send_group {
 
 sub send_mail {
 	my ($self, $recipiant, $subject, $content) = @_;
+	print "mail has been send\n";
 	open(my $cmd, '|-', "mail", "-s", $subject, $recipiant) or die $!;
 	print {$cmd} "$content";
 	close $cmd;
