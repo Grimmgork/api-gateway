@@ -10,13 +10,14 @@ sub new {
 
 sub fetch {
 	my ($self, $session_id) = @_;
-	if(my ($m, $login, $exp) = $self->{data}->find_token($session_id)){
+	if(my (undef, $terminator, $login, $exp) = $self->{data}->find_token($session_id)){
 		if(time() > $exp){
 			return undef;
 		}
 		return {
 			expiration => $exp,
-			login => $login
+			login => $login,
+			terminator => $terminator
 		};
 	}
 	return undef;
@@ -30,7 +31,7 @@ sub remove {
 sub store {
 	my ($self, $session_id, $session) = @_;
 	$self->{data}->remove_token($session_id);
-	$self->{data}->add_new_token($session_id, $session->{login}, $session->{expiration});
+	$self->{data}->add_new_token($session_id, $session->{terminator}, $session->{login}, $session->{expiration});
 	return $session_id;
 }
 

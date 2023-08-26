@@ -27,7 +27,7 @@ sub prepare_connection {
 	$dbh->do("PRAGMA foreign_keys = ON");
 	$dbh->do("create table if not exists users (username text primary key)");
 	$dbh->do("create table if not exists passwords (username text primary key, password text not null, foreign key(username) references users(username) ON UPDATE CASCADE ON DELETE CASCADE)");
-	$dbh->do("create table if not exists tokens (token text primary key, username text not null, expiration integer not null, foreign key(username) references users(username) ON UPDATE CASCADE ON DELETE CASCADE)");
+	$dbh->do("create table if not exists tokens (token text primary key, terminator text not null, username text not null, expiration integer not null, foreign key(username) references users(username) ON UPDATE CASCADE ON DELETE CASCADE)");
 	$dbh->do("create table if not exists apikeys (apikey text primary key, username text not null, foreign key(username) references users(username) ON UPDATE CASCADE ON DELETE CASCADE)");
 	$dbh->do("create table if not exists groups (groupname text primary key)");
 	$dbh->do("create table if not exists user_groups (username text, groupname text, foreign key(username) references users(username) ON UPDATE CASCADE ON DELETE CASCADE, foreign key(groupname) references groups(groupname) ON UPDATE CASCADE ON DELETE CASCADE)");
@@ -78,21 +78,31 @@ sub remove_token {
 }
 
 sub add_new_token {
-	my ($self, $token, $uname, $time, $directives) = @_;
+	my ($self, $token, $terminator, $uname, $time, $directives) = @_;
 	return undef unless $uname and $time and $token;
 	my $dbh = get_dbh($self);
-	my $sth = $dbh->prepare("insert into tokens (token, username, expiration) values (?, ?, ?)");
-	my $res = $sth->execute($token, $uname, $time);
+	my $sth = $dbh->prepare("insert into tokens (token, terminator, username, expiration) values (?, ?, ?, ?)");
+	my $res = $sth->execute($token, $terminator, $uname, $time);
 	$sth->finish;
 	return $token if $res;
 	return undef;
+}
+
+sub terminate_token {
+	my ($self, $terminator) = @_;
+	return undef unless $terminator;
+	my $dbh = get_dbh($self);
+	my $sth = $dbh->prepare("delete from tokens where terminator=?");
+	my $res = $sth->execute($terminator);
+	$sth->finish;
+	return $sth->rows;
 }
 
 sub find_token {
  	my ($self, $token) = @_;
 	return undef unless $token;
 	my $dbh = get_dbh($self);
-	my $sth = $dbh->prepare("select token, username, expiration from tokens where token=?");
+	my $sth = $dbh->prepare("select token, terminator, username, expiration from tokens where token=?");
 	$sth->execute($token);
 	return $sth->fetchrow_array();
 }

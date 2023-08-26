@@ -3,8 +3,6 @@ use parent qw(Plack::Middleware);
 use Plack::Request;
 use Plack::Util;
 
-use Plack::Middleware::ReqMatch;
-
 sub call {
 	my($self, $env) = @_;
 

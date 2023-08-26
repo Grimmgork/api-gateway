@@ -12,3 +12,4 @@ siege.core
 test.pl
 config.*
 Config*
+Secrets.pm
