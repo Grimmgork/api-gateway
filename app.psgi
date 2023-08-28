@@ -51,6 +51,13 @@ sub template_session_terminated {
 	return $templ->output;
 }
 
+sub template_overview {
+	my $templ = HTML::Template->new(filename => "./templates/overview.html");
+	$templ->param(USER => shift);
+	$templ->param(AREAS => shift);
+	return $templ->output;
+}
+
 my $session_terminator = sub {
 	my $app = shift;
 	sub {
@@ -80,7 +87,7 @@ my $password = sub {
 
 		if($req->method eq "GET" and $req->path eq "/login") {
 			$session->expire();
-			my $url = URI->new($req->query_parameters->{"redirect"} || $self->{redirect} || "/sub/api"); # redirect to api. subdomain if no path has been chosen
+			my $url = URI->new($req->query_parameters->{"redirect"} || $self->{redirect} || "/sub/mclip"); # redirect to api. subdomain if no path has been chosen
 			if($url->path eq "/login") { # prevent a login, logout loop ...
 				return [400, ["content-type" => "text/plain"], ["malformed request!"]];
 			}
@@ -112,8 +119,8 @@ my $redirect_to_subdomain = sub {
 	my $app = shift;
 	sub {
 		my $env = shift;
-		if(my ($sub) = $env->{PATH_INFO} =~ /\/sub\/([a-z]+)/){
-			return [ 307, ["Location" => &PROTOCOL."://$sub.".&DOMAIN], []];
+		if(my ($sub, $path) = $env->{PATH_INFO} =~ /\/sub\/([a-z]+)(\/.+)?/){
+			return [ 307, ["Location" => &PROTOCOL."://$sub.".&DOMAIN.$path], []];
 		}
 		return $app->($env);
 	};
@@ -126,7 +133,7 @@ my $redirect_to_login = sub {
 		my $req = Plack::Request->new($env);
 		my $session = Plack::Session->new($env);
 		
-		unless($session->get('login')){
+		unless($session->get('login')){ # TODO use redirect_to_area middleware to correctly target area
 			my $redirect = uri_escape(URI->new($req->uri)->path_query);
 			return [307, ["location" => "/login?redirect=$redirect"], []];
 		}
@@ -154,10 +161,6 @@ my $login = sub {
 	};
 };
 
-my $common = builder {
-	mount "/" => Plack::App::Directory->new({ root => "./static" })->to_app;
-};
-
 my $mclip = builder {
 	enable "Sentinel", perm => "mclip_owner";
 	enable "LocationProxy", host => &HOST_MCLIPD;
@@ -179,7 +182,7 @@ builder {
 		get_uid         => \&get_uid,
 		get_permissions => \&get_permissions; # authenticated?, load permissions to env
 	enable $redirect_to_subdomain;
-	enable "HostSwitch", host => "api.".&DOMAIN, next => $common; # common
+	enable "HostSwitch", host => "api.".&DOMAIN, next => sub { return [307, ["Location" => "/sub/mclip"], []] };
 	enable "HostSwitch", host => "mclip.".&DOMAIN, next => $mclip; # mclip
 	enable "HostSwitch", host => "log.".&DOMAIN, next => $logd; # logd
 	sub { return [ 404, ["content-type" => "text/plain"], ["nothing to see here ..."]]; };

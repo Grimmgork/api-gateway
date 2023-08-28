@@ -1,0 +1,9 @@
+<h1>Overview:</h1>
+
+<p>Hello <TMPL_VAR NAME=USER ESCAPE=HTML></p>
+
+<TMPL_LOOP NAME=AREAS>
+	<p>
+		<a href="/sub/<TMPL_VAR NAME=AREA>"><TMPL_VAR NAME=AREA></a> 
+	</p>
+</TMPL_LOOP>
